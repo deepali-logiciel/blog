@@ -7,11 +7,13 @@ use User;
 use comment;
 use transformer\TitleTransformer;
 use transformer\CommentTransformer;
+use Traits\PostTrait;
 use Illuminate\Support\Facades\Auth;
 
 
 class PostController extends \BaseController {
-
+   
+	
 	/**
 	 * Display a listing of the resource.
 	 *
@@ -19,12 +21,11 @@ class PostController extends \BaseController {
 	 */
 
     // protected $response;
+	use PostTrait;
 
     public function __construct(Larasponse $response)
     {
         $this->response = $response;
-
-        // The Fractal parseIncludes() is available to use here
 		if(Input::get('includes')){
 			$this->response->parseIncludes(Input::get('includes'));
 		}
@@ -32,14 +33,12 @@ class PostController extends \BaseController {
 
 	public function postindex()
 	{
-		// $user_id = Request::get('user_id');
+		$add= Post::query();
         $title = Request::get('title');
         $limit =  Request::get('limit');
 		$login =  Request::get('login');
 		$user_id = Request::get('user_id');
 		$first_name = Request::get('first_name');
-		
-		// $login_user =  Request::get('login_user');
         if(!$limit){
             $limit = 10;
          }
@@ -58,7 +57,9 @@ class PostController extends \BaseController {
 		   }
 		
 		 else{
-		 	$add = Post::where('title','LIKE',"%$title%")->paginate($limit);
+		 	$add = Post::where('title','LIKE',"%$title%")->Paginate($limit);
+			$add = $this->sort($add ,$limit);
+			
 			return Response::json($this->response->Paginatedcollection($add, new TitleTransformer));
 		 }	
 	}
@@ -129,7 +130,6 @@ class PostController extends \BaseController {
 	 */
 	public function postedit($id)
 	{
-		// $post=post::find($id);
 		$rules=[
 			'title'=> 'required|max:20|unique:posts,title' . ($id ? ",$id" : ''),
 			'description'=> 'required|max:200'
@@ -226,11 +226,6 @@ class PostController extends \BaseController {
 		if($validation->fails()){
 			return Response::json($validation->errors(),404);
 		}
-		// $comment = Comment::with('replies')->limit(3);
-
-		// $comments = Comment::where('parent_id','<=', 3)->with('replies')->count();
-		// dd($comments);
-		// $comments = comment::where('id', '=', input::get('parent_id'))->first(); 
 		$comment=new comment;
 		$comment->user_id = Authorizer::getResourceOwnerId();
 		$comment->post_id = Request::get('post_id');
@@ -241,10 +236,9 @@ class PostController extends \BaseController {
 	
 		if($current && ($n = $current->children) && ($n->children) ) {
 
-					return Response::json(["meesege"=>"record is invalid"],400);
-				}
-				$comment->parent_id = Request::get('parent_id');			
-		    	
+		return Response::json(["meesege"=>"record is invalid"],400);
+		}
+		$comment->parent_id = Request::get('parent_id');			  	
 		}
 		
 					$comment->save();
@@ -263,21 +257,12 @@ class PostController extends \BaseController {
         if(!$limit){
             $limit = 10;
          }
-		
-        // // $data = comment::where( 'post_id','LIKE',"%$post_id%" )->paginate($limit);
 		$data=comment::select("*")
 		->where( 'post_id','LIKE',"%$post_id%")
-		// ->where('parent_id','<=', 3)
-
-		// ->with('replies')
-		// ->count('parent_id');
 		->paginate($limit);
-	
-        // // $post=($limit==0) ? "10":"$limit";
-      
         return Response::json($this->response->PaginatedCollection($data, new CommentTransformer));
 	
-		}
+	}
 
 	public function commentdelete($id)
 	{
@@ -290,8 +275,6 @@ class PostController extends \BaseController {
 		else{
 			return Response::json(["meesege"=>" Record not found "],404);
 		}
-		
-
 		return Response::json($comment);
 	}
 
@@ -299,9 +282,8 @@ class PostController extends \BaseController {
 
 	public function commentedit($id)
 	{
-		// $post=post::find($id);
+		
 		$rules=[
-			// 'post_id'=> 'required|max:20',
 			'comment'=> 'required|max:200'
 		];
 		$validation=Validator::make(Input::all(),$rules);
@@ -319,17 +301,11 @@ class PostController extends \BaseController {
 		
 
 		if($comment){
-        // $comment->post_id = Request::get('post_id');
         $comment->comment = Request::get('comment');
         $comment->update();
-
-		// return Response::json(["meesege"=>"record updated sucessfully"] ,200);
 		return $messege;
 		}
 			return Response::json(["meesege"=>"record not found"],404);
 	}
-	
-
-
 
 }

@@ -4,8 +4,14 @@ use Sorskod\Larasponse\Larasponse;
 use Illuminate\Support\Facades\Validator;
 use LucaDegasperi\OAuth2Server\Authorizer;
 use app\services\authservice;
+use app\services\profileservices;
 use transformer\UserTransformer;
+use transformer\ProfileTransformer;
+use transformer\DepartmentTransformer;
+use department;
 use User;
+use user_profile;         
+use user_department;         
 
 class UserController extends \BaseController {
 
@@ -18,44 +24,20 @@ class UserController extends \BaseController {
      protected $authorizer;
 
 	function __construct(Larasponse $response,
+	Request $request,
+	profileservices $profileservices,
     Authorizer $authorizer,
     Authservice $authservice)
     {
+		$this->request=$request;
         $this->response = $response;
         $this->authorizer = $authorizer;
         $this->authservice = $authservice;
-        // The Fractal parseIncludes() is available to use here
+		$this->services  = $profileservices;
         if(Input::get('includes')){
-            $this->response->parseIncludes(Input::get('includes'));
+            $this->response->parseIncludes(Input::get('includes')); 
         }
     }
-
-
-
-
-	public function Userindex()
-	{
-		// $posts = Post::with('comment.user')->get();
-
-		// return ($posts);
-		$all=User::with('post.comment')->get();
-
-        
-        $limit =  Request::get('limit');
-        if(!$limit){
-            $limit = 10;
-         }
-		
-		    
-        // $data = User::where('all','LIKE',"%$all%")->paginate($limit);
-      
-        // // $post=($limit==0) ? "10":"$limit";
-      
-        // return Response::json($this->response->paginatedCollection($data, new TitleTransformer));
-		return $all;
-	}
-
-
 
 
 	/**
@@ -63,9 +45,27 @@ class UserController extends \BaseController {
 	 *
 	 * @return Response
 	 */
-	public function create()
+	public function upload()
 	{
-		//
+
+		$valid=[
+			'profile'=> 'required|image|mimes:jpeg,png,jpg|max:2048',
+		];
+		$validation=Validator::make(Input::all(),$valid);
+		if($validation->fails()){
+			return Response::json($validation->errors(),412);
+		}
+		$destinationPath = '';
+        $filename        = '';
+
+    if (Input::hasFile('profile')) {
+        $file            = Input::file('profile');
+		$log = $this->services->profile($file);
+		// dd($log);
+		return Response::json($this->response->item($log, new ProfileTransformer));
+	
+    }
+	return Response::json('not found');
 	}
 
 
@@ -76,33 +76,24 @@ class UserController extends \BaseController {
 	 */
 	public function signupstore()
 	{
-		$data=Request::all();
-		$rules=[
-			'email'=> 'required|unique:user|max:200',
-			'password'=> 'required|max:200'
-		];
-		$validation=Validator::make(Input::all(),$rules);
-
-		if($validation->fails()){
-			return Response::json($validation->errors(),412);
-		}
-
+		$data = Request::all();
+        $rules=[
+            'email'=> 'required|unique:user',
+            'password'=> 'required'
+        ];
+        $validation=Validator::make(Input::all(),$rules);
+        if($validation->fails()){
+            return Response::json($validation->errors(),412);
+        }
         $add=new User;
         $add->first_name = $data['first_name'];
         $add->last_name = $data['last_name'];
         $add->email = $data['email'];
         $add->password = Hash::make($data['password']);
         $add->save();
-		
-
-		return Response::json([
-			"message" => "inserted successfully"
-
-			
-		],201	);
-	
-
-	
+        return Response::json([
+         "message" => "SignUp Succesfully"
+        ],200   );
 	}
 
 
@@ -125,12 +116,7 @@ class UserController extends \BaseController {
 		if($validation->fails()){
 			return Response::json($validation->errors(),412);
 		}
-
 		$status = Request::get('is_active');
-
-        // $add=new User;
-		// $add->is_active = Request::get('is_active');
-        // $add->save();
 
 		if($status==0){
 			return Response::json([
@@ -154,12 +140,6 @@ class UserController extends \BaseController {
 				
 			],404	);
 		}
-		
-
-		
-	
-
-	
 	}
 	
 		public function login()
@@ -176,21 +156,44 @@ class UserController extends \BaseController {
            ],200   );
     }
 
+	    public function userindex()
+	{
+		$users =User::all();
+		// leftjoin('user_profile', 'user.id', '=' ,'user_profile.user_id')->get();
+		return Response::json($this->response->Collection($users, new UserTransformer));
+	}
+
 	
-
-
-
 	/**
 	 * Show the form for editing the specified resource.
 	 *
 	 * @param  int  $id
 	 * @return Response
 	 */
-	public function edit($id)
+	public function depindex()
 	{
-		//
+		$dep =department::all();
+		return Response::json($this->response->Collection($dep, new DepartmentTransformer));
 	}
+ 
 
+	public function pivot()
+	{
+		// $users =user::first();
+		// $users->department()->sync([1,2]);
+		// return Response::json([
+        //     "message" => " inserted Succesfully",
+         
+        //    ],200   );
+
+        $user = User::find(Input::get('user_id'));
+		$depIds = Input::get('department_id');
+		$user->department()->sync((array)$depIds);
+		return Response::json([
+			    "message" => " inserted Succesfully",
+			 
+			   ],200   );
+	}
 
 	/**
 	 * Update the specified resource in storage.

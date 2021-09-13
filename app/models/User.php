@@ -31,11 +31,18 @@ class User extends Eloquent implements UserInterface, RemindableInterface {
 
 	public function comment(){
 		return $this->hasMany(comment::class);
-		// return $this->hasMany('comment');
+		
 	}
 
-	// public function posts () {
-	// 	return $this->hasMany(Posts::class, 'user_id', 'id');
-	//   }
+	public function profile(){
+
+		return $this->hasOne(user_profile::class);
+		
+	}
+
+	public function department()
+	{
+		return $this->belongsToMany(department::class, 'user_department');
+	}
 
 }

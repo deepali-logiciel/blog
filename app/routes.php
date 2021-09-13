@@ -10,6 +10,13 @@
 | and give it the Closure to execute when that URI is requested.
 |
 */
+
+
+Route::get('/', function()
+{
+    echo "welcome to blog assignment..";
+    exit;
+});
 Route::group(['before' => 'oauth'], function()
     {
 Route::post('/post','PostController@poststore');
@@ -38,4 +45,16 @@ Route::put('comment/{id}/comment','PostController@commentedit');
 Route::post('/signupstore','UserController@signupstore');
 Route::post('/login','UserController@login');
 Route::post('/status','UserController@status');
-Route::get('/Userindex','UserController@Userindex');
+Route::get('/userindex','UserController@userindex');
+
+Route::group(['before' => 'oauth'], function()
+      {
+    Route::post('/upload','UserController@upload');
+});
+ 
+
+////////-------department------////////
+Route::get('/depindex','UserController@depindex');
+Route::post('/pivot','UserController@pivot');
+
+
