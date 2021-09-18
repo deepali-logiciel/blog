@@ -11,12 +11,11 @@ class ProfileRepository
     public function image($filename ,$url)
     {
         $profile  = new user_Profile;
-
         $profile->user_id = Auth::Id();
         $profile->profile = $url;
         $profile->save();
         return $profile;
-
+    
     }
   
 }

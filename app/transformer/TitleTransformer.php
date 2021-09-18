@@ -6,7 +6,7 @@ class TitleTransformer extends TransformerAbstract
 {
 
     protected $availableIncludes = [
-        'comment','user'
+        'comment','user','markedby'
     ];
 
 
@@ -18,6 +18,7 @@ class TitleTransformer extends TransformerAbstract
             'user_id'         => $post->user_id,
             'title'         =>  $post->title,
             'description'   =>  $post->description,
+            'is_favourite'   =>  $post->is_favourite,
             'created_at' => $post->created_at->format('Y-m-d H:i:s'),
             'updated_at' => $post->updated_at->format('Y-m-d H:i:s')
          ];
@@ -38,6 +39,15 @@ class TitleTransformer extends TransformerAbstract
         $user = $post->users;
         if($user){
         return $this->item($user, new UserTransformer);
+        }
+
+    }
+    public function includeMarkedby($post) 
+    {
+       
+        $mark = $post->marked;
+        if($mark){
+        return $this->item($mark, new UserMarkTransformer);
        
         }
     }

@@ -8,12 +8,13 @@ trait PostTrait
 {
 
     
-    public function sort($add ,$limit)
+    public function sort($posts ,$limit)
     {
-        $sort_by = \input::get('sort_by') ?  :'post.id';
+        $sort_by = \input::get('sort_by') ?  :'posts.id';
 		$sort_order = \input::get('sort_order') ? :'desc';
-        $add = Post::orderBy($sort_by, $sort_order)->Paginate($limit);
-        return $add;
+        $posts = Post::orderBy($sort_by, $sort_order)->Paginate($limit);
+
+        return $posts;
     }
   
 }

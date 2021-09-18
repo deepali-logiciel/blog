@@ -28,6 +28,8 @@ class UserController extends \BaseController {
 	profileservices $profileservices,
     Authorizer $authorizer,
     Authservice $authservice)
+
+
     {
 		$this->request=$request;
         $this->response = $response;
@@ -47,14 +49,18 @@ class UserController extends \BaseController {
 	 */
 	public function upload()
 	{
-
+		$input = Input::all();
 		$valid=[
 			'profile'=> 'required|image|mimes:jpeg,png,jpg|max:2048',
 		];
-		$validation=Validator::make(Input::all(),$valid);
+
+
+		$validation=Validator::make($input, $valid);
 		if($validation->fails()){
 			return Response::json($validation->errors(),412);
 		}
+
+
 		$destinationPath = '';
         $filename        = '';
 
@@ -65,6 +71,7 @@ class UserController extends \BaseController {
 		return Response::json($this->response->item($log, new ProfileTransformer));
 	
     }
+
 	return Response::json('not found');
 	}
 
@@ -74,23 +81,29 @@ class UserController extends \BaseController {
 	 *
 	 * @return Response
 	 */
-	public function signupstore()
+	public function signup()
 	{
 		$data = Request::all();
+		$input = Input::all();
         $rules=[
             'email'=> 'required|unique:user',
             'password'=> 'required'
         ];
-        $validation=Validator::make(Input::all(),$rules);
+
+        $validation=Validator::make($input, $rules);
+
         if($validation->fails()){
             return Response::json($validation->errors(),412);
         }
+
+
         $add=new User;
         $add->first_name = $data['first_name'];
         $add->last_name = $data['last_name'];
         $add->email = $data['email'];
         $add->password = Hash::make($data['password']);
         $add->save();
+
         return Response::json([
          "message" => "SignUp Succesfully"
         ],200   );
@@ -107,61 +120,60 @@ class UserController extends \BaseController {
 
 	public function status()
 	{
-	
+		$input = Input::all();
+
 		$rules=[
 			'is_active'=> 'required',
 		];
-		$validation=Validator::make(Input::all(),$rules);
+		$validation = Validator::make($input, $rules);
 
 		if($validation->fails()){
 			return Response::json($validation->errors(),412);
 		}
+
 		$status = Request::get('is_active');
 
+
 		if($status==0){
-			return Response::json([
-				"message" => "inactive"
-	
-				
-			],201	);
+			return Response::json(["message" => "inactive"],201	);
 		}
+
+
 		else if($status==1){
-			return Response::json([
-				"message" => "active"
-	
-				
-			],201	);
-	
+			return Response::json(["message" => "active"],201);
 		}
-		else{
-			return Response::json([
-				"message" => "please enter valid boolean number"
-	
-				
-			],404	);
-		}
+		
+
+			return Response::json(["message" => "please enter valid boolean number"	],404	);
+		
 	}
 	
+
+
 		public function login()
-    {
-        $user= Input::all();
-        $user = User::where('email' , Input::get('username'))->first();
-        // dd($user);
-        $token = $this->authorizer->issueAccessToken();
-        // dd($token);
-        $token = $this->authservice->verify($token);
-        return Response::json([
-            "message" => "Login Succesfully",
-            $token
-           ],200   );
-    }
+        {
+			$user= Input::all();
+			$user = User::where('email' , Input::get('username'))->first();
+			// dd($user);
+
+			$token = $this->authorizer->issueAccessToken();
+			// dd($token);
+
+			$token = $this->authservice->verify($token);
+
+			return Response::json([
+				"message" => "Login Succesfully",
+				$token
+			],200   );
+        }
+
+
 
 	    public function userindex()
-	{
-		$users =User::all();
-		// leftjoin('user_profile', 'user.id', '=' ,'user_profile.user_id')->get();
-		return Response::json($this->response->Collection($users, new UserTransformer));
-	}
+	    {
+			$users = User::all();
+			return Response::json($this->response->Collection($users, new UserTransformer));
+	    }
 
 	
 	/**
@@ -170,9 +182,11 @@ class UserController extends \BaseController {
 	 * @param  int  $id
 	 * @return Response
 	 */
+
+
 	public function depindex()
 	{
-		$dep =department::all();
+		$dep = department::all();
 		return Response::json($this->response->Collection($dep, new DepartmentTransformer));
 	}
  
@@ -188,9 +202,11 @@ class UserController extends \BaseController {
 
         $user = User::find(Input::get('user_id'));
 		$depIds = Input::get('department_id');
+
 		$user->department()->sync((array)$depIds);
+
 		return Response::json([
-			    "message" => " inserted Succesfully",
+			    "message" => "inserted Succesfully",
 			 
 			   ],200   );
 	}

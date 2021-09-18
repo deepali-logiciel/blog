@@ -17,6 +17,9 @@ class CreatePostsTable extends Migration {
 			$table->integer('user_id');
             $table->string('title');
             $table->text('description');
+			$table->boolean('is_favourite');
+			$table->integer('marked_by');
+
             $table->timestamps();
         });
     }

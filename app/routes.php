@@ -19,30 +19,29 @@ Route::get('/', function()
 });
 Route::group(['before' => 'oauth'], function()
     {
-Route::post('/post','PostController@poststore');
-Route::get('/post','PostController@postindex');
-Route::get('post/{title}/Postdisplay','PostController@Postdisplay');
-Route::put('post/{id}/post','PostController@postedit');
-Route::delete('/post/{id}','PostController@postdelete');
-Route::get('/displaybyid/{id}','PostController@displaybyid');
-Route::get('/indexx','PostController@indexx');
+Route::post('/posts','PostsController@poststore');
+Route::get('/posts','PostsController@postindex');
+Route::get('posts/{title}/Postsdisplay','PostsController@Postdisplay');
+Route::put('posts/{id}','PostsController@postedit');
+Route::delete('/posts/{id}','PostsController@postdelete');
+Route::get('/posts/{id}','PostsController@displaybyid');
+Route::post('/favourite','PostsController@favourite');
+
     });
 
       ///////-----comments------///////////
 
  Route::group(['before' => 'oauth'], function()
       {
-Route::post('/comment','PostController@commentstore');
-Route::get('/comment','PostController@commentindex');
-Route::delete('/comment/{id}','PostController@commentdelete');
-Route::put('comment/{id}/comment','PostController@commentedit');
+Route::post('/comments','PostsController@commentstore');
+Route::get('/comments','PostsController@commentindex');
+Route::delete('/comments/{id}','PostsController@commentdelete');
+Route::put('comments/{id}','PostsController@commentedit');
 });
-
 
 ///////----user-----//////
 
-
-Route::post('/signupstore','UserController@signupstore');
+Route::post('/signup','UserController@signup');
 Route::post('/login','UserController@login');
 Route::post('/status','UserController@status');
 Route::get('/userindex','UserController@userindex');
@@ -52,9 +51,9 @@ Route::group(['before' => 'oauth'], function()
     Route::post('/upload','UserController@upload');
 });
  
-
 ////////-------department------////////
-Route::get('/depindex','UserController@depindex');
+
+Route::get('/department','UserController@depindex');
 Route::post('/pivot','UserController@pivot');
 
 

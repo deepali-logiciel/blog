@@ -41,16 +41,15 @@ class post extends Eloquent implements UserInterface, RemindableInterface {
 		// return $this->hasMany('comment');
 	}
 
-	// public function manycomment()
-	// {
-	// 	return $this->hasMany(comment::class);
-	// }
+	
 	public function users () {
 		return $this->belongsTo(User::class,'user_id','id');
 	  }
-	
-	  
 
+
+	  public function marked () {
+		return $this->belongsTo(User::class,'marked_by','id');
+	  }
 	/**
 	 * The attributes excluded from the model's JSON form.
 	 *

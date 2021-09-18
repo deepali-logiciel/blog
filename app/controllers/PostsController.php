@@ -11,7 +11,7 @@ use Traits\PostTrait;
 use Illuminate\Support\Facades\Auth;
 
 
-class PostController extends \BaseController {
+class PostsController extends \BaseController {
    
 	
 	/**
@@ -33,35 +33,37 @@ class PostController extends \BaseController {
 
 	public function postindex()
 	{
-		$add= Post::query();
+		$post = Post::query();
         $title = Request::get('title');
         $limit =  Request::get('limit');
 		$login =  Request::get('login');
 		$user_id = Request::get('user_id');
 		$first_name = Request::get('first_name');
+		$is_favourite = Request::get('is_favourite');
         if(!$limit){
             $limit = 10;
          }
 
 		 if($user_id){
-			$data = Post::select("*")
-				->whereIn('user_id',$user_id)
-				->get();
-			return Response::json($this->response->collection($data, new TitleTransformer));	
+			$post->whereIn('user_id',$user_id);
 		 }
-		 elseif($first_name){
-			$name = Post::leftJoin('user','posts.user_id', '=','user.id')
-			->whereIn('first_name',$first_name)
-			->get();
-			return Response::json($this->response->Collection($name, new TitleTransformer));
+
+
+		 if($first_name){
+		    $post->leftJoin('user','posts.user_id', '=','user.id')->whereIn('first_name',$first_name);
 		   }
+
+
+		if($is_favourite){
+			$post->whereIn('is_favourite',$is_favourite);
+		}
 		
-		 else{
-		 	$add = Post::where('title','LIKE',"%$title%")->Paginate($limit);
-			$add = $this->sort($add ,$limit);
-			
-			return Response::json($this->response->Paginatedcollection($add, new TitleTransformer));
-		 }	
+
+		 $post->select('posts.*');
+		 $posts = $post->paginate($limit);
+		 $post = $this->sort($posts,$limit);
+		 return Response::json($this->response->Paginatedcollection($posts, new TitleTransformer));
+
 	}
 	
 
@@ -81,28 +83,37 @@ class PostController extends \BaseController {
 	 */
 	public function poststore()
 	{
-		$id=Auth::id();
+		$userId = Auth::id();
+		$input = Input::all();
 		
-		$rules=[
+		$rules = [
 
 			'title'=> 'required|unique:posts|max:20',
 			'description'=> 'required|max:200'
 		];
-		$validation=Validator::make(Input::all(),$rules);
+		$validation = Validator::make($input, $rules);
 
 		if($validation->fails()){
 			return Response::json($validation->errors(),412);
 		}
 
-        $post=new post;
-		$messege=array(
-			array('messege'=>'record inserted sucessfully'),
-			array($post)
-		);
+		$mark = post::where('is_favourite', '=', 1 );
+        $post = new post;
+		$messege = [
+			['messege'=>'record inserted sucessfully'],
+			[$post]
+		];
+
 		$post->id = Request::get('id');
-		$post->user_id = Authorizer::getResourceOwnerId();
+		$post->user_id = $userId ;
         $post->title = Request::get('title');
         $post->description = Request::get('description');
+		if($mark){
+		$post->marked_by = $userId;
+		$post->save();
+		}
+		
+		$post->marked_by = 0;	
         $post->save();
 
 		return $messege;
@@ -115,11 +126,8 @@ class PostController extends \BaseController {
 	 *
 	 * @param  int  $id
 	 * @return Response
-	 */
-	public function show($id)
-	{
-		
-	}
+	 */	
+	
 
 
 	/**
@@ -130,21 +138,22 @@ class PostController extends \BaseController {
 	 */
 	public function postedit($id)
 	{
-		$rules=[
-			'title'=> 'required|max:20|unique:posts,title' . ($id ? ",$id" : ''),
-			'description'=> 'required|max:200'
+		$input = Input::all();
+		$rules = [
+			'title' => 'required|max:20|unique:posts,title' . ($id ? ",$id" : ''),
+			'description' => 'required|max:200'
 		];
-		$validation=Validator::make(Input::all(),$rules);
-
+		$validation = Validator::make($input,$rules);
 		if($validation->fails()){
 			return Response::json($validation->errors(),412);
 		}
 
-        $post=post::find($id);
-		$messege=array(
-			array('messege'=>'record updated sucessfully'),
-			array($post)
-		);
+
+        $post = post::find($id);
+		$messege = [
+			['messege'=>'record updated sucessfully'],
+			[$post]
+		];
 
 		
 
@@ -153,11 +162,10 @@ class PostController extends \BaseController {
         $post->description = Request::get('description');
         $post->update();
 		return $messege;
+
 		}
 		
-			return Response::json(["meesege"=>"record not found"],404);
-	
-
+			return Response::json(["meesege" => "record not found"],404);
 	}
 	
 
@@ -182,18 +190,18 @@ class PostController extends \BaseController {
 	 */
 	public function postdelete($id)
 	{
-		$post=post::find($id);
+		$post = post::find($id);
 		
 		if($post){
-		$post->delete();
-		return Response::json(["meesege"=>"record deleted sucessfully"],200);
+			$post->delete();
+			return Response::json(["meesege"=>"record deleted sucessfully"],200);
 		}
 		else{
-			return Response::json(["meesege"=>" Record not found "],404);
+		    return Response::json(["meesege"=>" Record not found "],404);
 		}
 		
 
-		return Response::json($post);
+		    return Response::json($post);
 	}
 
 
@@ -214,20 +222,22 @@ class PostController extends \BaseController {
 	public function commentstore()
     {
 
-	
-		$id=Auth::id();
-		// dd($id);
+		$input = Input::all();
+		$userId = Auth::id();
+
 		$rules=[
 			'post_id'=> 'required',
 			'comment'=> 'required|max:200'
 		];
-		$validation=Validator::make(Input::all(),$rules);
+
+		$validation=Validator::make($input, $rules);
 
 		if($validation->fails()){
 			return Response::json($validation->errors(),404);
 		}
-		$comment=new comment;
-		$comment->user_id = Authorizer::getResourceOwnerId();
+
+		$comment = new comment;
+		$comment->user_id = $userId;
 		$comment->post_id = Request::get('post_id');
 		$comment->comment = Request::get('comment');
 		if(input::get('parent_id')){
@@ -242,22 +252,26 @@ class PostController extends \BaseController {
 		}
 		
 					$comment->save();
-					$messege=array(
-						array('messege'=>'record inserted sucessfully'),     
-						array($comment)
-					);
+					$messege=[
+					['messege'=>'record inserted sucessfully'],     
+						[$comment]
+					];
 					return $messege;			
     }
+
+
 
 	public function commentindex()
 	{
 		
         $post_id = Request::get('post_id');
         $limit =  Request::get('limit');
+
         if(!$limit){
             $limit = 10;
          }
-		$data=comment::select("*")
+
+		$data = comment::select("*")
 		->where( 'post_id','LIKE',"%$post_id%")
 		->paginate($limit);
         return Response::json($this->response->PaginatedCollection($data, new CommentTransformer));
@@ -266,15 +280,18 @@ class PostController extends \BaseController {
 
 	public function commentdelete($id)
 	{
-		$comment=comment::find($id);
+		$comment = comment::find($id);
 		
 		if($comment){
 		$comment->delete();
+
 		return Response::json(["meesege"=>"record deleted sucessfully"],200);
 		}
+
 		else{
 			return Response::json(["meesege"=>" Record not found "],404);
 		}
+
 		return Response::json($comment);
 	}
 
@@ -282,30 +299,62 @@ class PostController extends \BaseController {
 
 	public function commentedit($id)
 	{
-		
+		$input=Input::all();
 		$rules=[
-			'comment'=> 'required|max:200'
+			'comment' => 'required|max:200'
 		];
-		$validation=Validator::make(Input::all(),$rules);
+		$validation = Validator::make($input,$rules);
 
 		if($validation->fails()){
 			return Response::json($validation->errors(),412);
 		}
 
-        $comment=comment::find($id);
-		$messege=array(
-			array('messege'=>'record updated sucessfully'),
-			array($comment)
-		);
+        $comment = comment::find($id);
+		$messege=[
+			['messege' => 'record updated sucessfully'],
+			[$comment]
+		];
 
 		
-
 		if($comment){
         $comment->comment = Request::get('comment');
         $comment->update();
 		return $messege;
 		}
 			return Response::json(["meesege"=>"record not found"],404);
+	}
+
+	public function favourite()
+	{
+		
+		$add = Post::Find(Input::get('post_id'));
+
+        if($add){
+		$fav = Input::get('is_favourite');
+
+ 		if($fav == 0){
+			$add->marked_by = 0;
+			$add->is_favourite = $fav;
+			$add->save();
+			return Response::json([	"message" => "not a favourite post"],201);	
+		}
+
+
+		else if($fav == 1){
+			$add->marked_by = Authorizer::getResourceOwnerId();
+			$add->is_favourite=$fav;
+			$add->save();
+			return Response::json(["message" => "favourite post"],201);
+	
+		}
+		
+		else{
+			return Response::json(["message" => "please enter valid boolean number"],404);
+
+            
+		}
+	}
+
 	}
 
 }
